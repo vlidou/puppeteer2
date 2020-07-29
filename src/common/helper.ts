@@ -201,6 +201,39 @@ async function waitWithTimeout<T extends any>(
   }
 }
 
+async function waitWithTimeout2<T extends any>(
+  promise: Promise<T>,
+  altPromise: Promise<T>,
+  taskName: string,
+  timeout: number
+): Promise<T> {
+  let reject;
+  const timeoutError = new TimeoutError(
+    `waiting for ${taskName} failed: timeout ${timeout}ms exceeded`
+  );
+  const timeoutPromise = new Promise<T>((_, x) => (reject = x));
+  let timeoutTimer = null;
+
+  if (timeout) timeoutTimer = setTimeout(() => reject(timeoutError), timeout);
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } catch (er) {
+    if (er instanceof TimeoutError) {
+      await Promise.race([altPromise]);
+      const nextAttempt = await this.waitWithTimeout2(
+        promise,
+        altPromise,
+        taskName,
+        timeout
+      );
+      return nextAttempt;
+    }
+    throw er;
+  } finally {
+    if (timeoutTimer) clearTimeout(timeoutTimer);
+  }
+}
+
 async function readProtocolStream(
   client: CDPSession,
   handle: string,
@@ -234,6 +267,7 @@ export const helper = {
   evaluationString,
   readProtocolStream,
   waitWithTimeout,
+  waitWithTimeout2,
   waitForEvent,
   isString,
   isNumber,
