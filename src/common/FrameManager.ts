@@ -290,6 +290,11 @@ export class FrameManager extends EventEmitter {
       ); // frames might be removed before we send this
   }
 
+  async _rebuildIsolatedWorld() {
+    this._isolatedWorlds.clear();
+    await this._ensureIsolatedWorld(UTILITY_WORLD_NAME);
+  }
+
   _onFrameNavigatedWithinDocument(frameId: string, url: string): void {
     const frame = this._frames.get(frameId);
     if (!frame) return;

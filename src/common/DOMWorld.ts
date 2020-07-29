@@ -99,7 +99,17 @@ export class DOMWorld {
       throw new Error(
         `Execution Context is not available in detached frame "${this._frame.url()}" (are you trying to evaluate?)`
       );
-    return this._contextPromise;
+
+    const altPromise = new Promise<ExecutionContext>(
+      async () => await this._frameManager._rebuildIsolatedWorld()
+    );
+
+    return helper.waitWithTimeout2(
+      this._contextPromise,
+      altPromise,
+      'executionContext()',
+      2000
+    );
   }
 
   /**
